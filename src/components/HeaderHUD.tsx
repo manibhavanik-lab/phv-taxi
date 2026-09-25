@@ -9,7 +9,8 @@ import {
   Cpu, 
   DollarSign, 
   Sparkles, 
-  RefreshCw
+  RefreshCw,
+  Bot
 } from 'lucide-react';
 import { SINGAPORE_ZONES } from '../data/singaporeData';
 
@@ -27,6 +28,8 @@ interface HeaderHUDProps {
   onTriggerScenario: (scenarioId: string) => void;
   todayEarnings: number;
   surgeOpportunitiesCount: number;
+  isAskAgentOpen: boolean;
+  onToggleAskAgent: () => void;
 }
 
 export const HeaderHUD: React.FC<HeaderHUDProps> = ({
@@ -41,7 +44,9 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({
   onOpenMCPDrawer,
   onOpenShiftTracker,
   onTriggerScenario,
-  todayEarnings
+  todayEarnings,
+  isAskAgentOpen,
+  onToggleAskAgent
 }) => {
   const [showScenarioMenu, setShowScenarioMenu] = useState(false);
 
@@ -172,6 +177,20 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({
             </div>
           )}
         </div>
+
+        {/* Ask Agent Panel Toggle Button */}
+        <button
+          onClick={onToggleAskAgent}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all shrink-0 ${
+            isAskAgentOpen
+              ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 border-cyan-400 text-white shadow-md shadow-cyan-500/30 ring-1 ring-cyan-400'
+              : 'bg-slate-900 hover:bg-slate-800 border-indigo-500/40 text-indigo-300 hover:text-white'
+          }`}
+          title="Open Ask Agent Panel (POST /api/ask with MCP servers)"
+        >
+          <Bot className="w-3.5 h-3.5" />
+          <span>Ask Agent</span>
+        </button>
 
         {/* MCP Tools Button */}
         <button

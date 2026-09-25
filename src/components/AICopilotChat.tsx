@@ -157,7 +157,7 @@ export const AICopilotChat: React.FC<AICopilotChatProps> = ({
               className="flex items-center gap-1 py-1 px-2 rounded-md bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-300 border border-slate-700 transition-all"
             >
               <MessageSquare className="w-3 h-3 text-cyan-400" />
-              <span>{isOpen ? 'Close' : 'Ask'}</span>
+              <span>{isOpen ? 'Close' : 'Dispatch'}</span>
               {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>

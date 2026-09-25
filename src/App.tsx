@@ -28,12 +28,15 @@ import { OpportunityCard } from './components/OpportunityCard';
 import { AICopilotChat } from './components/AICopilotChat';
 import { MCPInspectorDrawer } from './components/MCPInspectorDrawer';
 import { ShiftTrackerModal } from './components/ShiftTrackerModal';
+import { AskAgentPanel } from './components/AskAgentPanel';
 import { speakDispatchAlert } from './utils/audioDispatch';
 import { 
   Flame, 
   RefreshCw, 
   ArrowUpDown, 
-  AlertCircle 
+  AlertCircle,
+  X,
+  Bot
 } from 'lucide-react';
 
 export default function App() {
@@ -43,6 +46,9 @@ export default function App() {
   const [ltaIncidents, setLtaIncidents] = useState<LTAIncident[]>(INITIAL_LTA_INCIDENTS);
   const [flightWaves, setFlightWaves] = useState<ChangiArrivalWave[]>(INITIAL_CHANGI_ARRIVALS);
   const [eventEgresses, setEventEgresses] = useState<EventEgress[]>(INITIAL_EVENT_EGRESS);
+
+  // Cockpit view toggle on right pane (Pre-surge feed vs Ask Agent)
+  const [rightTab, setRightTab] = useState<'feed' | 'ask'>('feed');
 
   // Driver GPS and Settings
   const [driverLocation, setDriverLocation] = useState({
@@ -60,6 +66,7 @@ export default function App() {
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
   const [isMCPDrawerOpen, setIsMCPDrawerOpen] = useState<boolean>(false);
   const [isShiftTrackerOpen, setIsShiftTrackerOpen] = useState<boolean>(false);
+  const [isAskAgentOpen, setIsAskAgentOpen] = useState<boolean>(false);
 
   // Map Layer filters
   const [filterLayers, setFilterLayers] = useState<{
@@ -256,6 +263,8 @@ export default function App() {
         onTriggerScenario={handleTriggerScenario}
         todayEarnings={driverState.todayEarnings}
         surgeOpportunitiesCount={opportunities.length}
+        isAskAgentOpen={isAskAgentOpen}
+        onToggleAskAgent={() => setIsAskAgentOpen(!isAskAgentOpen)}
       />
 
       {/* Main Single-Page Cockpit Viewport */}
@@ -291,81 +300,115 @@ export default function App() {
           />
         </div>
 
-        {/* Right Side: Pre-Surge Opportunity Feed */}
+        {/* Right Side: Pre-Surge Opportunity Feed OR Ask Agent Panel */}
         <div className="flex-[5] min-h-0 h-full flex flex-col gap-2 overflow-hidden">
-          {/* Filter Bar & Sort Controls */}
-          <div className="shrink-0 bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-800 shadow flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400">
-              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>PRE-SURGE ({filteredOpportunities.length})</span>
-            </div>
-
-            {/* Sector Tabs */}
-            <div className="flex items-center gap-1">
-              {['All', 'Central', 'East', 'West'].map(sec => (
-                <button
-                  key={sec}
-                  onClick={() => setSelectedSector(sec)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
-                    selectedSector === sec
-                      ? 'bg-cyan-600 text-white shadow-sm'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {sec}
-                </button>
-              ))}
-            </div>
-
-            {/* Sort Dropdown & Refresh */}
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[10px]">
-                <ArrowUpDown className="w-2.5 h-2.5 text-slate-400" />
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value as any)}
-                  className="bg-transparent text-slate-300 font-bold focus:outline-none cursor-pointer"
-                >
-                  <option value="urgency" className="bg-slate-900">Urgency</option>
-                  <option value="multiplier" className="bg-slate-900">Multiplier</option>
-                  <option value="eta" className="bg-slate-900">Closest</option>
-                  <option value="fare" className="bg-slate-900">Yield</option>
-                </select>
-              </div>
-
+          {/* Top Segmented Tab Switcher */}
+          <div className="shrink-0 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800/80">
               <button
-                onClick={() => {
-                  fetchOpportunities();
-                  fetchCopilotIntel();
-                }}
-                title="Refresh MCP Feeds"
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                onClick={() => setRightTab('feed')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono font-bold transition-all ${
+                  rightTab === 'feed'
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
               >
-                <RefreshCw className="w-3 h-3" />
+                <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span>PRE-SURGE ({filteredOpportunities.length})</span>
+              </button>
+              <button
+                onClick={() => setRightTab('ask')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono font-bold transition-all ${
+                  rightTab === 'ask'
+                    ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-sm ring-1 ring-cyan-400/50'
+                    : 'text-indigo-300 hover:text-white'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span>ASK AGENT</span>
               </button>
             </div>
-          </div>
 
-          {/* Scrollable list strictly contained inside this column pane */}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5">
-            {filteredOpportunities.length === 0 ? (
-              <div className="p-6 text-center bg-slate-900/60 rounded-xl border border-slate-800 text-slate-400">
-                <AlertCircle className="w-6 h-6 text-slate-500 mx-auto mb-1.5" />
-                <div className="text-xs font-bold text-slate-300">No Pre-Surge Hotspots in this sector</div>
-                <p className="text-[10px] text-slate-500 mt-0.5">Try switching to 'All' sector above.</p>
+            {rightTab === 'feed' ? (
+              <div className="flex items-center gap-1">
+                {/* Sector Tabs */}
+                <div className="hidden sm:flex items-center gap-0.5">
+                  {['All', 'Central', 'East', 'West'].map(sec => (
+                    <button
+                      key={sec}
+                      onClick={() => setSelectedSector(sec)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                        selectedSector === sec
+                          ? 'bg-cyan-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {sec}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[10px]">
+                  <ArrowUpDown className="w-2.5 h-2.5 text-slate-400" />
+                  <select
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value as any)}
+                    className="bg-transparent text-slate-300 font-bold focus:outline-none cursor-pointer text-[10px]"
+                  >
+                    <option value="urgency" className="bg-slate-900">Urgency</option>
+                    <option value="multiplier" className="bg-slate-900">Multiplier</option>
+                    <option value="eta" className="bg-slate-900">Closest</option>
+                    <option value="fare" className="bg-slate-900">Yield</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => {
+                    fetchOpportunities();
+                    fetchCopilotIntel();
+                  }}
+                  title="Refresh MCP Feeds"
+                  className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </button>
               </div>
             ) : (
-              filteredOpportunities.map((opp) => (
-                <OpportunityCard
-                  key={opp.id}
-                  opportunity={opp}
-                  isSelected={selectedOpportunity?.id === opp.id}
-                  onSelect={() => setSelectedOpportunity(opp)}
-                  voiceEnabled={voiceEnabled}
-                />
-              ))
+              <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-mono pr-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>MCP Tool-Calling Active</span>
+              </div>
             )}
           </div>
+
+          {/* Tab Content */}
+          {rightTab === 'ask' ? (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <AskAgentPanel />
+            </div>
+          ) : (
+            /* Scrollable list strictly contained inside this column pane */
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5">
+              {filteredOpportunities.length === 0 ? (
+                <div className="p-6 text-center bg-slate-900/60 rounded-xl border border-slate-800 text-slate-400">
+                  <AlertCircle className="w-6 h-6 text-slate-500 mx-auto mb-1.5" />
+                  <div className="text-xs font-bold text-slate-300">No Pre-Surge Hotspots in this sector</div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Try switching to 'All' sector above.</p>
+                </div>
+              ) : (
+                filteredOpportunities.map((opp) => (
+                  <OpportunityCard
+                    key={opp.id}
+                    opportunity={opp}
+                    isSelected={selectedOpportunity?.id === opp.id}
+                    onSelect={() => setSelectedOpportunity(opp)}
+                    voiceEnabled={voiceEnabled}
+                  />
+                ))
+              )}
+            </div>
+          )}
         </div>
       </main>
 
@@ -375,6 +418,25 @@ export default function App() {
         onClose={() => setIsMCPDrawerOpen(false)}
         onExecuteTool={handleExecuteMCPTool}
       />
+
+      {/* Ask Agent Panel Modal */}
+      {isAskAgentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-cyan-500/50 shadow-2xl bg-slate-900">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsAskAgentOpen(false)}
+              className="absolute top-3 right-3 z-10 p-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              title="Close Ask Agent"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="overflow-y-auto p-1">
+              <AskAgentPanel />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shift Tracker Modal */}
       <ShiftTrackerModal

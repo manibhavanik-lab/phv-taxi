@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import askHandler from './api/ask.js';
 import {
   REGISTERED_MCP_TOOLS,
   INITIAL_PRE_SURGE_OPPORTUNITIES,
@@ -22,6 +23,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// API: Agent POST /api/ask endpoint
+app.post('/api/ask', askHandler as any);
 
 // Initialize GoogleGenAI SDK with required telemetry User-Agent
 const apiKey = process.env.GEMINI_API_KEY;
